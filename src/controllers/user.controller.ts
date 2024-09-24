@@ -1,12 +1,16 @@
 import { Request, Response } from "express";
 import UserModel from "../models/user.model";
 import mongoose from "mongoose";
+import hashPassword from "src/utils/hashPassword";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
 const createUser = async (req: Request, res: Response) => {
   try {
-    const newUser = new UserModel(req.body);
+    const { password, ...userData } = req.body;
+    const hashedPassword = await hashPassword(password);
+
+    const newUser = new UserModel({ ...userData, password: hashedPassword });
     await newUser.save();
     res.status(201).json(newUser);
   } catch (error) {
@@ -94,7 +98,13 @@ const updateUser = async (req: Request, res: Response) => {
         .send("Access denied. You can only update your own profile.");
     }
 
-    const updatedUser = await UserModel.findByIdAndUpdate(userId, req.body, {
+    const { password, ...updateData } = req.body;
+
+    if (password) {
+      updateData.password = await hashPassword(password);
+    }
+
+    const updatedUser = await UserModel.findByIdAndUpdate(userId, updateData, {
       new: true,
     });
     res.status(200).json(updatedUser);

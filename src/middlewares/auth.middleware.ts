@@ -1,23 +1,29 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
+
+const secret = process.env.JWT_SECRET;
+if (!secret) {
+  throw new Error("JWT_SECRET is not defined in environment variables");
+}
 
 const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const token = req.header("Authorization");
+  const authHeader = req.headers["authorization"];
+  console.log(req.headers);
+  const token = authHeader && authHeader.split(" ")[1];
   if (!token) {
-    return res.status(401).send("Unauthorized");
-  }
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error("JWT_SECRET is not defined in environment variables");
+    return res.status(401).send("Unauthorized: Malformed token");
   }
 
   try {
-    const decoded = jwt.verify(token, secret) as { id: string };
-    req.body.userId = (decoded as any).userId;
-    next();
+    jwt.verify(token, secret, (err, user) => {
+      if (err) return res.sendStatus(403);
+      req.user = { id: (user as JwtPayload).userId as string };
+      next();
+      console.log(req.user);
+    });
   } catch (error) {
     if (error instanceof Error) {
-      res.status(401).send(error.message);
+      res.status(401).send(`Unauthorized: ${error.message}`);
     }
   }
 };
