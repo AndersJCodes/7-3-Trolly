@@ -3,10 +3,10 @@ import {
   createBoard,
   updateBoard,
   deleteBoard,
-  getBoard,
-  getBoards,
+  getBoardById,
+  getAllBoards,
   addUserToBoard,
-  addTaskToBoard,
+  removeUserFromBoard,
 } from "../controllers/board.controller";
 import authMiddleware from "../middlewares/auth.middleware";
 
@@ -14,12 +14,14 @@ const router = Router();
 
 router.use(authMiddleware);
 
+//TODO Consider middleware to controll board values
+
 router.post("/", createBoard);
+router.get("/", getAllBoards);
+router.get("/:id", getBoardById);
 router.put("/:id", updateBoard);
 router.delete("/:id", deleteBoard);
-router.get("/:id", getBoard);
-router.get("/", getBoards);
-router.post("/:boardId/users/:userId", addUserToBoard);
-router.post("/:boardId/tasks/:taskId", addTaskToBoard);
+router.post("/:id/users/", addUserToBoard);
+router.delete("/:id/users/", removeUserFromBoard);
 
 export default router;
