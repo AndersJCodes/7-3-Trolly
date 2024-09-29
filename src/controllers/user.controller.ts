@@ -2,12 +2,13 @@ import { Request, Response } from "express";
 import UserModel from "../models/user.model";
 import mongoose from "mongoose";
 import hashPassword from "src/utils/hashPassword";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
+import * as bcrypt from "bcrypt";
+import * as jwt from "jsonwebtoken";
+import { IUser } from "../types/boardInterface";
 
 const createUser = async (req: Request, res: Response) => {
   try {
-    const { password, ...userData } = req.body;
+    const { password, ...userData }: IUser = req.body;
     const hashedPassword = await hashPassword(password);
 
     const newUser = new UserModel({ ...userData, password: hashedPassword });
@@ -22,7 +23,7 @@ const createUser = async (req: Request, res: Response) => {
 
 const loginUser = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { email, password }: IUser = req.body;
     const user = await UserModel.findOne({ email });
     if (!user) {
       return res.status(404).send("User not found");
@@ -65,7 +66,7 @@ const getUserById = async (req: Request, res: Response) => {
       return res.status(400).send("Invalid user ID format");
     }
 
-    const user = await UserModel.findById(userId);
+    const user = (await UserModel.findById(userId)) as IUser | null;
 
     if (!user) {
       return res.status(404).send("User not found");
@@ -87,7 +88,7 @@ const updateUser = async (req: Request, res: Response) => {
       return res.status(400).send("Invalid user ID format");
     }
 
-    const user = await UserModel.findById(userId);
+    const user = (await UserModel.findById(userId)) as IUser | null;
     if (!user) {
       return res.status(404).send("User not found");
     }
@@ -104,9 +105,9 @@ const updateUser = async (req: Request, res: Response) => {
       updateData.password = await hashPassword(password);
     }
 
-    const updatedUser = await UserModel.findByIdAndUpdate(userId, updateData, {
+    const updatedUser = (await UserModel.findByIdAndUpdate(userId, updateData, {
       new: true,
-    });
+    })) as IUser;
     res.status(200).json(updatedUser);
   } catch (error) {
     if (error instanceof Error) {
@@ -123,7 +124,7 @@ const deleteUser = async (req: Request, res: Response) => {
       return res.status(400).send("Invalid user ID format");
     }
 
-    const user = await UserModel.findByIdAndDelete(userId);
+    const user = (await UserModel.findByIdAndDelete(userId)) as IUser | null;
     if (!user) {
       return res.status(404).send("User not found");
     }

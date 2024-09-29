@@ -1,6 +1,7 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, Model } from "mongoose";
+import { IBoard } from "../types/boardInterface";
 
-const boardSchema = new mongoose.Schema({
+const boardSchema = new Schema<IBoard>({
   title: { type: String, required: true },
   description: { type: String },
   members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
@@ -8,6 +9,6 @@ const boardSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
-const Board = mongoose.model("Board", boardSchema);
+const Board: Model<IBoard> = mongoose.model<IBoard>("Board", boardSchema);
 
 export default Board;

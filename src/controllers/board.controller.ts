@@ -4,18 +4,10 @@ import { validationResult } from "express-validator";
 import Board from "../models/board.model";
 import User from "../models/user.model";
 import { isUserBoardMember } from "../utils/isUserBoardMember";
-
-interface BoardRequest {
-  title: string;
-  description: string;
-  members: string[] | null;
-}
+import { IBoard } from "../types/boardInterface";
 
 //Create a new board and add the current user as a member
-const createBoard = async (
-  req: Request<{}, {}, BoardRequest>,
-  res: Response
-) => {
+const createBoard = async (req: Request, res: Response) => {
   // Input validation
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -23,14 +15,14 @@ const createBoard = async (
   }
 
   try {
-    const { title, description } = req.body;
+    const { title, description }: IBoard = req.body;
     const userId = req.user?.id;
 
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const board = new Board({ title, description, members: [userId] });
+    const board: IBoard = new Board({ title, description, members: [userId] });
 
     await board.save();
     res.status(201).json(board);
@@ -57,7 +49,10 @@ const getAllBoards = async (req: Request, res: Response) => {
         .json({ error: "Access denied. You are not a member of this board." });
     }
 
-    const boards = await Board.find({ members: userId });
+    const boards = (await Board.findById(BoardId)) as IBoard[] | null;
+    if (!boards) {
+      return res.status(404).json({ error: "Board not found" });
+    }
     res.status(200).json(boards);
   } catch (error) {
     if (error instanceof Error) {
@@ -69,20 +64,20 @@ const getAllBoards = async (req: Request, res: Response) => {
 // Get a board by ID that the current user is a member of
 const getBoardById = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const { BoardId } = req.params;
     const userId = req.user?.id;
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const isMember = await isUserBoardMember(id, userId);
+    const isMember = await isUserBoardMember(BoardId, userId);
     if (!isMember) {
       return res
         .status(403)
         .json({ error: "Access denied. You are not a member of this board." });
     }
 
-    const board = await Board.findById(id);
+    const board = (await Board.findById(BoardId)) as IBoard | null;
     if (!board) {
       return res.status(404).json({ error: "Board not found" });
     }
@@ -99,7 +94,7 @@ const updateBoard = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
     const boardId = req.params.id;
-    const updateBoard = req.body;
+    const updateBoard: IBoard = req.body;
 
     //Check to see if userId is defined
     if (!userId) {
@@ -111,11 +106,11 @@ const updateBoard = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid board ID format" });
     }
 
-    const updatedBoard = await Board.findByIdAndUpdate(
+    const updatedBoard = (await Board.findByIdAndUpdate(
       { _id: boardId, users: userId },
       updateBoard,
       { new: true }
-    );
+    )) as IBoard | null;
 
     if (!boardId) {
       return res.status(403).json({ error: "Board not found." });
@@ -179,7 +174,7 @@ const addUserToBoard = async (req: Request, res: Response) => {
         .json({ error: "Access denied. You are not a member of this board." });
     }
 
-    const updateBoard = await Board.findById(boardId);
+    const updateBoard: IBoard | null = await Board.findById(boardId);
     const user = await User.findById(userId);
     if (!updateBoard || !user) {
       return res.status(404).json({ error: "Board or user not found" });

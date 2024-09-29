@@ -1,15 +1,14 @@
 import mongoose from "mongoose";
 
 const uri = process.env.ATLAS_URI || "";
-const user = process.env.MONGODB_USER || "";
-const pass = process.env.MONGODB_PASS || "";
+if (!uri) {
+  console.error("ATLAS_URI is not set");
+  process.exit(1);
+}
 
 async function connect() {
   try {
-    await mongoose.connect(uri, {
-      user: user,
-      pass: pass,
-    });
+    await mongoose.connect(uri, {});
     console.log("Connected to the database");
   } catch (error) {
     console.error("Failed to connect to the database:", error);
