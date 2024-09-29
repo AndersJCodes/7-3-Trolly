@@ -4,7 +4,6 @@ import { isUserBoardMember } from "../utils/isUserBoardMember";
 
 const createTask = async (req: Request, res: Response) => {
   try {
-    
     const boardId = req.params.boardId;
     const { title, status, description, assignedTo } = req.body;
     const currentUserId = req.user?.id;
@@ -13,13 +12,13 @@ const createTask = async (req: Request, res: Response) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-        // Verify that the current user is a member of the board
-        const isMember = await isUserBoardMember(boardId, currentUserId);
-        if (!isMember) {
-          return res
-            .status(403)
-            .json({ error: "Access denied. You are not a member of this board." });
-        }
+    // Verify that the current user is a member of the board
+    const isMember = await isUserBoardMember(boardId, currentUserId);
+    if (!isMember) {
+      return res
+        .status(403)
+        .json({ error: "Access denied. You are not a member of this board." });
+    }
 
     // Create a new task instance
     const newTask: ITask = new Task({
@@ -44,6 +43,20 @@ const createTask = async (req: Request, res: Response) => {
 const getTasksFromBoard = async (req: Request, res: Response) => {
   try {
     const boardId = req.params.boardId;
+    const currentUserId = req.user?.id;
+
+    if (!currentUserId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    // Verify that the current user is a member of the board
+    const isMember = await isUserBoardMember(boardId, currentUserId);
+    if (!isMember) {
+      return res
+        .status(403)
+        .json({ error: "Access denied. You are not a member of this board." });
+    }
+
     const tasks = await Task.find({ boardId });
     res.status(200).json(tasks);
   } catch (error) {
@@ -104,8 +117,31 @@ const assignTaskToUser = async (req: Request, res: Response) => {
   try {
     const taskId = req.params.taskId;
     const { userId } = req.body;
+    const currentUserId = req.user?.id;
 
-    const task = await
+    if (!currentUserId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const task = await Task.findById(taskId);
+    if (!task) {
+      return res.status(404).send("Task not found");
+    }
+
+    // Convert ObjectId to string
+    const boardIdStr = task.boardId.toString();
+
+    // Verify that the current user is a member of the board
+    const isMember = await isUserBoardMember(boardIdStr, currentUserId);
+    if (!isMember) {
+      return res
+        .status(403)
+        .json({ error: "Access denied. You are not a member of this board." });
+    }
+
+    task.assignedTo = userId;
+    const updatedTask = await task.save();
+    res.status(200).json(updatedTask);
   } catch (error) {
     if (error instanceof Error) {
       res.status(400).send(error.message);
@@ -113,4 +149,47 @@ const assignTaskToUser = async (req: Request, res: Response) => {
   }
 };
 
-export { createTask, getTasksFromBoard, getTaskById, updateTask, deleteTask };
+const removeTaskFromUser = async (req: Request, res: Response) => {
+  try {
+    const taskId = req.params.taskId;
+    const currentUserId = req.user?.id;
+
+    if (!currentUserId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const task = await Task.findById(taskId);
+    if (!task) {
+      return res.status(404).send("Task not found");
+    }
+
+    // Convert ObjectId to string
+    const boardIdStr = task.boardId.toString();
+
+    // Verify that the current user is a member of the board
+    const isMember = await isUserBoardMember(boardIdStr, currentUserId);
+    if (!isMember) {
+      return res
+        .status(403)
+        .json({ error: "Access denied. You are not a member of this board." });
+    }
+
+    task.assignedTo = null; // or an empty string if you prefer
+    const updatedTask = await task.save();
+    res.status(200).json(updatedTask);
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(400).send(error.message);
+    }
+  }
+};
+
+export {
+  createTask,
+  getTasksFromBoard,
+  getTaskById,
+  updateTask,
+  deleteTask,
+  assignTaskToUser,
+  removeTaskFromUser,
+};

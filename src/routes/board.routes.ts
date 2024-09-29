@@ -4,7 +4,6 @@ import {
   updateBoard,
   deleteBoard,
   getBoardById,
-  getBoardWithTasksById,
   getAllBoards,
   addUserToBoard,
   removeUserFromBoard,
@@ -20,7 +19,6 @@ router.use(authMiddleware);
 router.post("/", createBoard);
 router.get("/", getAllBoards);
 router.get("/:id", getBoardById);
-router.get("/:id/tasks", getBoardWithTasksById);
 router.put("/:id", updateBoard);
 router.delete("/:id", deleteBoard);
 router.post("/:id/users/", addUserToBoard);
