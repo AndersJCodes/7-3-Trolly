@@ -1,15 +1,5 @@
-import mongoose, { Schema, Document, Types } from "mongoose";
-
-// Define the Task interface extending Mongoose's Document
-interface ITask extends Document {
-  boardId: Types.ObjectId;
-  title: string;
-  status: "To Do" | "In Progress" | "Done";
-  createdAt: Date;
-  description?: string | null;
-  finishedBy?: Date | null;
-  assignedTo?: Types.ObjectId | null;
-}
+import mongoose, { Schema } from "mongoose";
+import { ITask } from "../types/boardInterface";
 
 // Define the Task schema
 const taskSchema = new Schema({
@@ -30,4 +20,3 @@ const taskSchema = new Schema({
 const Task = mongoose.model<ITask>("Task", taskSchema);
 
 export default Task;
-export { ITask };

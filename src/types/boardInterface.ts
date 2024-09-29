@@ -1,4 +1,4 @@
-import mongoose, { Document } from "mongoose";
+import mongoose, { Document, Types } from "mongoose";
 
 interface IBoard extends Document {
   title: string;
@@ -15,4 +15,14 @@ interface IUser extends Document {
   password: string;
 }
 
-export { IBoard, IUser };
+interface ITask extends Document {
+  boardId: Types.ObjectId;
+  title: string;
+  status: "To Do" | "In Progress" | "Done";
+  createdAt: Date;
+  description?: string | null;
+  finishedBy?: Date | null;
+  assignedTo?: Types.ObjectId | null;
+}
+
+export { IBoard, IUser, ITask };

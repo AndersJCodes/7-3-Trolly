@@ -1,11 +1,13 @@
 import { Request, Response } from "express";
-import Task, { ITask } from "../models/task.model";
+import Task from "../models/task.model";
+import mongoose from "mongoose";
+import { ITask, IUser } from "../types/boardInterface";
 import { isUserBoardMember } from "../utils/isUserBoardMember";
 
 const createTask = async (req: Request, res: Response) => {
   try {
     const boardId = req.params.boardId;
-    const { title, status, description, assignedTo } = req.body;
+    const { title, status, description, assignedTo }: ITask = req.body;
     const currentUserId = req.user?.id;
 
     if (!currentUserId) {
@@ -57,7 +59,7 @@ const getTasksFromBoard = async (req: Request, res: Response) => {
         .json({ error: "Access denied. You are not a member of this board." });
     }
 
-    const tasks = await Task.find({ boardId });
+    const tasks: ITask[] = await Task.find({ boardId });
     res.status(200).json(tasks);
   } catch (error) {
     if (error instanceof Error) {
@@ -69,7 +71,7 @@ const getTasksFromBoard = async (req: Request, res: Response) => {
 const getTaskById = async (req: Request, res: Response) => {
   try {
     const taskId = req.params.taskId;
-    const task = await Task.findById(taskId);
+    const task = (await Task.findById(taskId)) as ITask | null;
     if (!task) {
       return res.status(404).send("Task not found");
     }
@@ -84,9 +86,10 @@ const getTaskById = async (req: Request, res: Response) => {
 const updateTask = async (req: Request, res: Response) => {
   try {
     const taskId = req.params.taskId;
-    const updatedTask = await Task.findByIdAndUpdate(taskId, req.body, {
+    const updatedTask = (await Task.findByIdAndUpdate(taskId, req.body, {
       new: true,
-    });
+    })) as ITask | null;
+
     if (!updatedTask) {
       return res.status(404).send("Task not found");
     }
@@ -101,7 +104,7 @@ const updateTask = async (req: Request, res: Response) => {
 const deleteTask = async (req: Request, res: Response) => {
   try {
     const taskId = req.params.taskId;
-    const deletedTask = await Task.findByIdAndDelete(taskId);
+    const deletedTask = (await Task.findByIdAndDelete(taskId)) as ITask | null;
     if (!deletedTask) {
       return res.status(404).send("Task not found");
     }
@@ -116,7 +119,7 @@ const deleteTask = async (req: Request, res: Response) => {
 const assignTaskToUser = async (req: Request, res: Response) => {
   try {
     const taskId = req.params.taskId;
-    const { userId } = req.body;
+    const { userId }: { userId: string } = req.body;
     const currentUserId = req.user?.id;
 
     if (!currentUserId) {
@@ -138,8 +141,9 @@ const assignTaskToUser = async (req: Request, res: Response) => {
         .status(403)
         .json({ error: "Access denied. You are not a member of this board." });
     }
+    const userIdObjectId = new mongoose.Types.ObjectId(userId);
 
-    task.assignedTo = userId;
+    task.assignedTo = userIdObjectId;
     const updatedTask = await task.save();
     res.status(200).json(updatedTask);
   } catch (error) {
