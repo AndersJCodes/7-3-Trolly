@@ -1,48 +1,39 @@
-import mongoose from "mongoose";
 import { Request, Response } from "express";
-import TaskModel from "../models/task.model";
-import UserModel from "../models/user.model";
-import BoardModel from "../models/board.model";
+import Task, { ITask } from "../models/task.model";
+import { isUserBoardMember } from "../utils/isUserBoardMember";
 
 const createTask = async (req: Request, res: Response) => {
   try {
-    const { title, description, boardId, assignedTo } = req.body;
+    
+    const boardId = req.params.boardId;
+    const { title, status, description, assignedTo } = req.body;
+    const currentUserId = req.user?.id;
 
-    if (!title || typeof title !== "string") {
-      return res.status(400).send("Title is required and must be a string");
-    }
-    if (!boardId || !mongoose.Types.ObjectId.isValid(boardId)) {
-      return res.status(400).send("Valid boardId is required");
-    }
-    if (assignedTo && !mongoose.Types.ObjectId.isValid(assignedTo)) {
-      return res.status(400).send("Invalid assignedTo format");
+    if (!currentUserId) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const board = await BoardModel.findById(boardId);
-    if (!board) {
-      return res.status(404).send("Board not found");
-    }
+        // Verify that the current user is a member of the board
+        const isMember = await isUserBoardMember(boardId, currentUserId);
+        if (!isMember) {
+          return res
+            .status(403)
+            .json({ error: "Access denied. You are not a member of this board." });
+        }
 
-    let user = null;
-    if (assignedTo) {
-      user = await UserModel.findById(assignedTo);
-      if (!user) {
-        return res.status(404).send("User not found");
-      }
-    }
-
-    const newTask = new TaskModel({
+    // Create a new task instance
+    const newTask: ITask = new Task({
+      boardId,
       title,
-      description: description || "",
-      board: boardId,
-      assignedTo: user ? user._id : undefined,
+      status,
+      description,
+      assignedTo,
+      createdAt: new Date(),
     });
-    await newTask.save();
 
-    board.tasks.push(newTask._id);
-    await board.save();
-
-    res.status(201).json(newTask);
+    // Save the task to the database
+    const savedTask = await newTask.save();
+    res.status(201).json(savedTask);
   } catch (error) {
     if (error instanceof Error) {
       res.status(400).send(error.message);
@@ -50,49 +41,10 @@ const createTask = async (req: Request, res: Response) => {
   }
 };
 
-const assignTaskToUser = async (req: Request, res: Response) => {
-  console.log("assignTaskToUser");
+const getTasksFromBoard = async (req: Request, res: Response) => {
   try {
-    const taskId = req.params.taskId;
-    const userId = req.body.userId;
-
-    if (!userId) {
-      return res.status(400).send("userId is required");
-    }
-
-    // Vi validerar att taskId och userId är giltiga ObjectId
-    if (!mongoose.Types.ObjectId.isValid(taskId)) {
-      return res.status(400).send("Invalid taskId format");
-    }
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).send("Invalid userId format");
-    }
-
-    //Vi kontrollerar att task och user finns i databasen
-    const user = await UserModel.findById(userId);
-    if (!user) {
-      res.status(404).send("User not found");
-      return;
-    }
-    const task = await TaskModel.findById(taskId);
-    if (!task) {
-      res.status(404).send("Task not found");
-      return;
-    }
-
-    task.assignedTo = user._id;
-    await task.save();
-    res.status(200).json(task);
-  } catch (error) {
-    if (error instanceof Error) {
-      res.status(400).send(error.message);
-    }
-  }
-};
-
-const getAllTasks = async (req: Request, res: Response) => {
-  try {
-    const tasks = await TaskModel.find();
+    const boardId = req.params.boardId;
+    const tasks = await Task.find({ boardId });
     res.status(200).json(tasks);
   } catch (error) {
     if (error instanceof Error) {
@@ -103,18 +55,11 @@ const getAllTasks = async (req: Request, res: Response) => {
 
 const getTaskById = async (req: Request, res: Response) => {
   try {
-    const taskId = req.params.id;
-
-    if (!mongoose.Types.ObjectId.isValid(taskId)) {
-      return res.status(400).send("Invalid taskId format");
-    }
-
-    const task = await TaskModel.findById(taskId);
+    const taskId = req.params.taskId;
+    const task = await Task.findById(taskId);
     if (!task) {
-      res.status(404).send("Task not found");
-      return;
+      return res.status(404).send("Task not found");
     }
-
     res.status(200).json(task);
   } catch (error) {
     if (error instanceof Error) {
@@ -123,53 +68,16 @@ const getTaskById = async (req: Request, res: Response) => {
   }
 };
 
-// Put request to update task
-
 const updateTask = async (req: Request, res: Response) => {
   try {
-    const taskId = req.params.id;
-    const updates = req.body;
-
-    if (!mongoose.Types.ObjectId.isValid(taskId)) {
-      return res.status(400).send("Invalid taskId format");
-    }
-
-    if (!updates || Object.keys(updates).length === 0) {
-      return res.status(400).send("No updates provided");
-    }
-
-    const task = await TaskModel.findById(taskId);
-    if (!task) {
+    const taskId = req.params.taskId;
+    const updatedTask = await Task.findByIdAndUpdate(taskId, req.body, {
+      new: true,
+    });
+    if (!updatedTask) {
       return res.status(404).send("Task not found");
     }
-
-    if (updates.assignedTo) {
-      if (!mongoose.Types.ObjectId.isValid(updates.assignedTo)) {
-        return res.status(400).send("Invalid assignedTo format");
-      }
-
-      const newUser = await UserModel.findById(updates.assignedTo);
-      if (!newUser) {
-        return res.status(404).send("User not found");
-      }
-
-      if (
-        task.assignedTo &&
-        task.assignedTo.toString() !== updates.assignedTo
-      ) {
-        const oldUser = await UserModel.findById(task.assignedTo);
-        if (oldUser) {
-          oldUser.tasks.pull(taskId);
-          await oldUser.save();
-        }
-      }
-
-      newUser.tasks.push(taskId);
-      await newUser.save();
-    }
-
-    await TaskModel.findByIdAndUpdate(taskId, updates, { new: true });
-    res.status(204).send();
+    res.status(200).json(updatedTask);
   } catch (error) {
     if (error instanceof Error) {
       res.status(400).send(error.message);
@@ -179,34 +87,12 @@ const updateTask = async (req: Request, res: Response) => {
 
 const deleteTask = async (req: Request, res: Response) => {
   try {
-    const taskId = req.params.id;
-    if (!mongoose.Types.ObjectId.isValid(taskId)) {
-      return res.status(400).send("Invalid taskId format");
-    }
-
-    const task = await TaskModel.findById(taskId);
-    if (!task) {
+    const taskId = req.params.taskId;
+    const deletedTask = await Task.findByIdAndDelete(taskId);
+    if (!deletedTask) {
       return res.status(404).send("Task not found");
     }
-
-    // Remove the task reference from the board's tasks array
-    const board = await BoardModel.findById(task.board);
-    if (board) {
-      board.tasks.pull(taskId);
-      await board.save();
-    }
-
-    // If the task is assigned to a user, remove the task reference from the user's assigned tasks
-    if (task.assignedTo) {
-      const user = await User.findById(task.assignedTo);
-      if (user) {
-        user.task.pull(taskId);
-        await user.save();
-      }
-    }
-
-    await TaskModel.findByIdAndDelete(taskId);
-    res.status(204).send();
+    res.status(200).json({ message: "Task deleted successfully" });
   } catch (error) {
     if (error instanceof Error) {
       res.status(400).send(error.message);
@@ -214,11 +100,17 @@ const deleteTask = async (req: Request, res: Response) => {
   }
 };
 
-export {
-  createTask,
-  getAllTasks,
-  getTaskById,
-  updateTask,
-  deleteTask,
-  assignTaskToUser,
+const assignTaskToUser = async (req: Request, res: Response) => {
+  try {
+    const taskId = req.params.taskId;
+    const { userId } = req.body;
+
+    const task = await
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(400).send(error.message);
+    }
+  }
 };
+
+export { createTask, getTasksFromBoard, getTaskById, updateTask, deleteTask };

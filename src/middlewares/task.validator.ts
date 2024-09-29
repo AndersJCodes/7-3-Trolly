@@ -24,6 +24,11 @@ const createTaskValidator = [
     .isISO8601()
     .withMessage("Due date must be a valid date")
     .escape(),
+
+  body("boardId")
+    .isMongoId()
+    .withMessage("Board ID must be a valid MongoDB ID")
+    .escape(),
 ];
 
 const updateTaskValidator = createTaskValidator.map(makeOptional);

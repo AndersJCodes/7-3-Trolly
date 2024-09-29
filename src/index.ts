@@ -16,7 +16,7 @@ connectToDb();
 
 // Routes
 app.use("/api/users", userRouter);
-app.use("/api/tasks", taskRouter);
+app.use("/api/", taskRouter);
 app.use("/api/boards", boardRouter);
 
 app.listen(PORT, () => {

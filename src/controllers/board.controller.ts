@@ -3,13 +3,8 @@ import mongoose from "mongoose";
 import { body, validationResult } from "express-validator";
 import Board from "../models/board.model";
 import User from "../models/user.model";
-
-// Helper function to check if a user is a member of a board
-const isUserBoardMember = async (boardId: string, userId: string) => {
-  const board = await Board.findOne({ _id: boardId, members: userId });
-  console.log("board", board);
-  return !!board;
-};
+import Task from "../models/task.model";
+import { isUserBoardMember } from "../utils/isUserBoardMember";
 
 const createBoard = async (req: Request, res: Response) => {
   // Input validation
@@ -63,6 +58,56 @@ const getBoardById = async (req: Request, res: Response) => {
     }
     res.status(200).json(board);
   } catch (error) {
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+const getBoardWithTasksById = async (req: Request, res: Response) => {
+  console.log("getBoardWithTasksById");
+  try {
+    const { id } = req.params; // 'id' is the board ID
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    // Validate board ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "Invalid board ID format" });
+    }
+
+    // Verify that the user is a member of the board
+    const isMember = await isUserBoardMember(id, userId);
+    if (!isMember) {
+      return res
+        .status(403)
+        .json({ error: "Access denied. You are not a member of this board." });
+    }
+
+    // Find the board
+    const board = await Board.findById(id).populate(
+      "members",
+      "username email"
+    );
+    if (!board) {
+      return res.status(404).json({ error: "Board not found" });
+    }
+
+    // Find tasks associated with the board
+    const tasks = await Task.find({ boardId: board._id });
+
+    // Combine the board data with its tasks
+    const boardWithTasks = {
+      ...board.toObject(),
+      tasks: tasks,
+    };
+
+    console.log("board:", board);
+
+    res.status(200).json(boardWithTasks);
+  } catch (error) {
+    console.error("Error fetching board with tasks:", error);
     res.status(500).json({ error: "Server error" });
   }
 };
@@ -140,8 +185,6 @@ const addUserToBoard = async (req: Request, res: Response) => {
         .status(403)
         .json({ error: "Access denied. You are not a member of this board." });
     }
-    console.log("boardId", boardId);
-    console.log("userId", userId);
 
     const updateBoard = await Board.findById(boardId);
     const user = await User.findById(userId);
@@ -157,47 +200,6 @@ const addUserToBoard = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Server error" });
   }
 };
-
-/* const removeUserFromBoard = async (req: Request, res: Response) => {
-  try {
-    const boardId = req.params.id;
-    const { userId } = req.body;
-    const currentUserId = req.user?.id;
-
-    if (!currentUserId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    // Verify that the current user is a member of the board
-    const isMember = await isUserBoardMember(boardId, currentUserId);
-    if (!isMember) {
-      return res
-        .status(403)
-        .json({ error: "Access denied. You are not a member of this board." });
-    }
-
-    const updateBoard = await Board.findById(boardId);
-    const user = await User.findById(userId);
-    if (!updateBoard || !user) {
-      return res.status(404).json({ error: "Board or user not found" });
-    }
-    // Ensure the user is not the last user on the board
-    if (updateBoard.members.length <= 1) {
-      return res
-        .status(400)
-        .json({ error: "Cannot remove the last user from the board" });
-    }
-    // Remove the user from the board
-    const updatedBoard = await Board.updateOne(
-      { _id: boardId },
-      { $pull: { members: userId } }
-    );
-
-    res.status(200).json(updatedBoard);
-  } catch (error) {
-    res.status(500).json({ error: "Server error" });
-  }
-}; */
 
 const removeUserFromBoard = async (req: Request, res: Response) => {
   try {
@@ -248,6 +250,7 @@ export {
   createBoard,
   getAllBoards,
   getBoardById,
+  getBoardWithTasksById,
   updateBoard,
   deleteBoard,
   addUserToBoard,

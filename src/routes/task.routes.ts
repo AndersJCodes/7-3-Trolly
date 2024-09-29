@@ -1,20 +1,32 @@
 import { Router } from "express";
 import {
   createTask,
-  getAllTasks,
+  getTasksFromBoard,
   getTaskById,
   updateTask,
-  assignTaskToUser,
   deleteTask,
 } from "../controllers/task.controller";
+import authMiddleware from "../middlewares/auth.middleware";
+import {
+  createTaskValidator,
+  updateTaskValidator,
+} from "../middlewares/task.validator";
 
 const router = Router();
 
-router.put("/:taskId/assign", assignTaskToUser);
-router.post("/", createTask);
-router.get("/", getAllTasks);
-router.get("/:id", getTaskById);
-router.put("/:id", updateTask);
-router.delete("/:id", deleteTask);
+// Route to create a new task
+router.post("/:boardId/tasks", createTaskValidator, createTask);
+
+// Route to get all tasks from a specific board
+router.get("/:boardId/tasks", getTasksFromBoard);
+
+// Route to get a specific task by ID
+router.get("/tasks/:taskId", getTaskById);
+
+// Route to update a specific task by ID
+router.put("/tasks/:taskId", updateTaskValidator, updateTask);
+
+// Route to delete a specific task by ID
+router.delete("/tasks/:taskId", deleteTask);
 
 export default router;
