@@ -40,3 +40,5 @@ För utveckling använder jag också följande:
 Appen startas via index.ts som anropar db-filen som kopplar ihop appen med databasen. Via routers/endpoints skapas ett restapi som utgörs av webbadresser som anropas för att ta emot och förändra data i databasen. Datan som kommer in haneras av validerare för att säkerställa att den användardata som kommer in uppfyller vissa kriteroer. Kontrollerfilerna sköter själva logiken och utgör ytterligare ett kontroll-lager innan datan skickas in i databasen. formaterat enligt bestämmelserna i de modeller som mappats upp.
 
 Däremellan finns också några andra funktioner som hashing, login,och autentisiering som ytterligare stärker upp säkerheten eller på andra sätt förenklar koden.
+
+Det finns mer saker jag kunnat utveckla ytterligare, men p¨det stora hela har jag en fungerande och förhållanadevis säker app, med tanke på omfattningen av kursen.
