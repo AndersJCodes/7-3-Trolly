@@ -1,4 +1,3 @@
-import e from "express";
 import { body, ValidationChain } from "express-validator";
 
 // Helper function to make validation rules optional

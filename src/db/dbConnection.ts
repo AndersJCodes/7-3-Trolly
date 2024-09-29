@@ -6,7 +6,7 @@ if (!uri) {
   process.exit(1);
 }
 
-async function connect() {
+async function connect(): Promise<void> {
   try {
     await mongoose.connect(uri, {});
     console.log("Connected to the database");

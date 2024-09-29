@@ -1,12 +1,17 @@
 import { Request, Response, NextFunction } from "express";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import * as jwt from "jsonwebtoken";
+import { JwtPayload } from "jsonwebtoken";
 
 const secret = process.env.JWT_SECRET;
 if (!secret) {
   throw new Error("JWT_SECRET is not defined in environment variables");
 }
 
-const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+const authMiddleware = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Response | void => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
   if (!token) {

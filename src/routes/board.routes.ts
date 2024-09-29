@@ -14,8 +14,6 @@ const router = Router();
 
 router.use(authMiddleware);
 
-//TODO Consider middleware to controll board values
-
 router.post("/", createBoard);
 router.get("/", getAllBoards);
 router.get("/:id", getBoardById);

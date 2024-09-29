@@ -12,21 +12,17 @@ import {
   createUserValidator,
   updateUserValidator,
 } from "../middlewares/user.validator";
-import handleValidationErrors from "../middlewares/validation.middleware";
 
 const router = Router();
 
-router.post("/", createUserValidator, handleValidationErrors, createUser);
+//auth routes
+router.post("/", createUserValidator, createUser);
 router.post("/login", loginUser);
+
+//user routes
 router.get("/", authMiddleware, getAllUsers);
 router.get("/:id", authMiddleware, getUserById);
-router.put(
-  "/:id",
-  authMiddleware,
-  updateUserValidator,
-  handleValidationErrors,
-  updateUser
-);
+router.put("/:id", authMiddleware, updateUserValidator, updateUser);
 router.delete("/:id", authMiddleware, deleteUser);
 
 export default router;
