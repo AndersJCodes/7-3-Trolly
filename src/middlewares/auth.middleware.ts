@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import * as jwt from "jsonwebtoken";
-import { JwtPayload } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 
 const secret = process.env.JWT_SECRET;
 if (!secret) {
