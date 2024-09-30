@@ -2,8 +2,8 @@ import { Request, Response } from "express";
 import UserModel from "../models/user.model";
 import mongoose from "mongoose";
 import hashPassword from "src/utils/hashPassword";
-import * as bcrypt from "bcrypt";
-import * as jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import { IUser } from "../types/boardInterface";
 
 const createUser = async (req: Request, res: Response) => {

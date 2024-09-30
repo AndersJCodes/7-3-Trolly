@@ -1,5 +1,5 @@
 import mongoose, { Schema, Model } from "mongoose";
-import * as bcrypt from "bcrypt";
+import bcrypt from "bcrypt";
 import { IUser } from "../types/boardInterface";
 
 const userSchema = new Schema<IUser>({
