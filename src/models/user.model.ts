@@ -8,6 +8,8 @@ const userSchema = new Schema<IUser>({
   password: { type: String, required: true },
 });
 
+userSchema.index({ email: 1 }, { unique: true });
+
 const User: Model<IUser> = mongoose.model<IUser>("User", userSchema);
 
 userSchema.pre<IUser>("save", async function (next) {
